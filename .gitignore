@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+.venv/
+README_local.md
+analysis/data/raw/*
+!analysis/data/raw/.gitkeep
+analysis/data/processed/*
+!analysis/data/processed/.gitkeep
+analysis/figures/*
+!analysis/figures/.gitkeep

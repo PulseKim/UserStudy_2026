@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Motion Preference Study</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="page-shell">
+    <section id="landing-view" class="panel" aria-labelledby="landing-title">
+      <h1 id="landing-title">Motion Agent User Study</h1>
+      <p>You will be shown a series of motion prompts. For each prompt, you will see two character motion videos labeled A and B. Please select the motion that better matches the given prompt. If neither motion matches the prompt better than the other, select "No preference."</p>
+      <div class="identity-fields">
+        <label for="participant-email">Email</label>
+        <input id="participant-email" name="email" type="email" autocomplete="email" required>
+      </div>
+      <div class="privacy-notice">
+        <strong>Privacy</strong>
+        <p>Your email address is converted in this browser into a pseudonymous participant ID. Your raw email address is not sent to or stored in the study database.</p>
+        <p>Study records will be deleted by August 31, 2027.</p>
+      </div>
+      <label class="consent-row">
+        <input id="consent-checkbox" type="checkbox">
+        <span>I have read the instructions and agree to participate.</span>
+      </label>
+      <p id="registration-message" class="form-message" role="status" aria-live="polite"></p>
+      <button id="start-button" class="primary-button" type="button" disabled>Start</button>
+    </section>
+
+    <section id="study-view" class="panel study-panel" aria-labelledby="study-title" hidden>
+      <div class="study-header">
+        <h1 id="study-title">Motion Preference Study</h1>
+        <p id="progress" class="progress" aria-live="polite"></p>
+      </div>
+
+      <div class="prompt-display" aria-live="polite">
+        <strong>Prompt:</strong>
+        <span id="trial-prompt"></span>
+      </div>
+
+      <div class="video-grid">
+        <figure class="video-card">
+          <figcaption>A</figcaption>
+          <video id="left-video" preload="auto" muted playsinline></video>
+        </figure>
+        <figure class="video-card">
+          <figcaption>B</figcaption>
+          <video id="right-video" preload="auto" muted playsinline></video>
+        </figure>
+      </div>
+
+      <div class="playback-controls">
+        <button id="play-both-button" type="button">Play Both</button>
+      </div>
+
+      <fieldset class="response-group">
+        <legend>Which motion better matches the given prompt?</legend>
+        <div class="response-options">
+          <label class="response-option"><input type="radio" name="response" value="left"> <span>A</span></label>
+          <label class="response-option"><input type="radio" name="response" value="right"> <span>B</span></label>
+          <label class="response-option"><input type="radio" name="response" value="none"> <span>No preference</span></label>
+        </div>
+      </fieldset>
+
+      <p id="study-message" class="status-message" role="status" aria-live="polite"></p>
+      <div class="next-row">
+        <button id="next-button" class="primary-button" type="button" disabled>Next</button>
+      </div>
+    </section>
+
+    <section id="completion-view" class="panel completion-panel" aria-labelledby="completion-title" hidden>
+      <h1 id="completion-title">Thank you</h1>
+      <p id="completion-message">Thank you. Your responses have been recorded.</p>
+    </section>
+  </main>
+
+  <script src="config.js?v=5"></script>
+  <script src="trials.js?v=5"></script>
+  <script src="study.js?v=5"></script>
+</body>
+</html>
