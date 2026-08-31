@@ -34,9 +34,9 @@ function createSession(participantId) {
   const studyTrials = shuffle(TRIALS).slice(0, STUDY_TRIALS_PER_PARTICIPANT);
   const attentionTrials = shuffle(ATTENTION_CHECKS).slice(0, ATTENTION_CHECKS_PER_PARTICIPANT);
   const attentionInstructions = [
-    { position: "left", prompt: "Please select A for this question." },
-    { position: "right", prompt: "Please select B for this question." },
-    { position: "none", prompt: "Please select \"No preference\" for this question." }
+    { position: "left", prompt: "This is an attention test. Please select A for this question." },
+    { position: "right", prompt: "This is an attention test. Please select B for this question." },
+    { position: "none", prompt: "This is an attention test. Please select \"No preference\" for this question." }
   ];
   const selectedTrials = shuffle([...studyTrials, ...attentionTrials]).map((t, i) => {
     const firstLeft = Math.random() < .5;
