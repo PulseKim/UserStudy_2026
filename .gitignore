@@ -11,3 +11,4 @@ analysis/data/processed/*
 !analysis/data/processed/.gitkeep
 analysis/figures/*
 !analysis/figures/.gitkeep
+results/

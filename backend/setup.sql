@@ -4,8 +4,10 @@ create table if not exists public.study_sessions (
   number_of_attention_checks integer not null check (number_of_attention_checks >= 0),
   number_of_attention_checks_correct integer not null check (number_of_attention_checks_correct >= 0),
   passed_attention_check boolean not null, completion_status text not null check (completion_status in ('complete','incomplete')),
+  is_test boolean not null default false,
   created_at timestamptz not null default now()
 );
+alter table public.study_sessions add column if not exists is_test boolean not null default false;
 create table if not exists public.trial_responses (
   id bigint generated always as identity primary key, participant_id uuid not null references public.study_sessions(participant_id),
   trial_id text not null, trial_order integer not null check (trial_order > 0),
@@ -33,10 +35,11 @@ begin
      or jsonb_array_length(payload->'responses') <> (s->>'number_of_trials')::int
      or jsonb_array_length(payload->'responses') > 500 then raise exception 'Invalid study payload'; end if;
   insert into study_sessions(participant_id,start_time,end_time,total_duration_ms,number_of_trials,number_of_attention_checks,
-    number_of_attention_checks_correct,passed_attention_check,completion_status,created_at)
+    number_of_attention_checks_correct,passed_attention_check,completion_status,is_test,created_at)
     values ((s->>'participant_id')::uuid,(s->>'start_time')::timestamptz,(s->>'end_time')::timestamptz,
     (s->>'total_duration_ms')::bigint,(s->>'number_of_trials')::int,(s->>'number_of_attention_checks')::int,
-    (s->>'number_of_attention_checks_correct')::int,(s->>'passed_attention_check')::boolean,s->>'completion_status',now())
+    (s->>'number_of_attention_checks_correct')::int,(s->>'passed_attention_check')::boolean,s->>'completion_status',
+    coalesce((s->>'is_test')::boolean,false),now())
     on conflict(participant_id) do nothing;
   for r in select value from jsonb_array_elements(payload->'responses') loop
     if r->>'participant_id' <> s->>'participant_id' then raise exception 'Participant mismatch'; end if;

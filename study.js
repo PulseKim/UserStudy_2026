@@ -3,7 +3,8 @@
 const STUDY_TRIALS_PER_PARTICIPANT = 15;
 const ATTENTION_CHECKS_PER_PARTICIPANT = 2;
 const ATTENTION_PASS_THRESHOLD = 1.0;
-const STORAGE_KEY = "motion-preference-study-session-v4";
+const TEST_MODE = new URLSearchParams(window.location.search).get("test") === "1";
+const STORAGE_KEY = TEST_MODE ? "motion-preference-study-session-v5-test" : "motion-preference-study-session-v4";
 const $ = selector => document.querySelector(selector);
 const views = { landing: $("#landing-view"), study: $("#study-view"), completion: $("#completion-view") };
 const consentCheckbox = $("#consent-checkbox"), startButton = $("#start-button");
@@ -30,9 +31,12 @@ function createSession(participantId) {
   if (TRIALS.some(t => !["sequence", "kinematic"].includes(t.type))) throw new Error('Every trial type must be "sequence" or "kinematic".');
   if (TRIALS.some(t => typeof t.prompt !== "string" || !t.prompt.trim())) throw new Error("Every trial must have a motion prompt.");
   if (!Array.isArray(ATTENTION_CHECKS) || ATTENTION_CHECKS.length < ATTENTION_CHECKS_PER_PARTICIPANT) throw new Error(`Configure at least ${ATTENTION_CHECKS_PER_PARTICIPANT} attention checks.`);
+  if (!Array.isArray(TEST_TRIALS) || TEST_TRIALS.length !== 2) throw new Error("Configure exactly two test trials.");
   if (new Set([...TRIALS, ...ATTENTION_CHECKS].map(t => t.id)).size !== TRIALS.length + ATTENTION_CHECKS.length) throw new Error("Study and attention-check IDs must be unique.");
-  const studyTrials = shuffle(TRIALS).slice(0, STUDY_TRIALS_PER_PARTICIPANT);
-  const attentionTrials = shuffle(ATTENTION_CHECKS).slice(0, ATTENTION_CHECKS_PER_PARTICIPANT);
+  const studyTrials = TEST_MODE ? TEST_TRIALS : shuffle(TRIALS).slice(0, STUDY_TRIALS_PER_PARTICIPANT);
+  const attentionTrials = TEST_MODE
+    ? shuffle(ATTENTION_CHECKS).slice(0, 1)
+    : shuffle(ATTENTION_CHECKS).slice(0, ATTENTION_CHECKS_PER_PARTICIPANT);
   const attentionInstructions = [
     { position: "left", prompt: "This is an attention test. Please select A for this question." },
     { position: "right", prompt: "This is an attention test. Please select B for this question." },
@@ -52,7 +56,7 @@ function createSession(participantId) {
       leftSrc: firstLeft ? t.method1 : t.method2, rightSrc: firstLeft ? t.method2 : t.method1
     };
   });
-  return { participantId, studyStartTime: new Date().toISOString(), selectedTrials, currentIndex: 0,
+  return { participantId, isTest: TEST_MODE, studyStartTime: new Date().toISOString(), selectedTrials, currentIndex: 0,
     responses: [], currentSelection: null, trialShownAt: Date.now(), status: "in_progress", submissionStatus: "not_submitted" };
 }
 
@@ -64,6 +68,10 @@ async function emailToParticipantId(email) {
   idBytes[8] = (idBytes[8] & 0x3f) | 0x80;
   const hex = [...idBytes].map(byte => byte.toString(16).padStart(2, "0")).join("");
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+function randomParticipantId() {
+  return crypto.randomUUID();
 }
 
 function loadSession() {
@@ -113,7 +121,8 @@ function buildPayload() {
   return { session: { participant_id: session.participantId, start_time: session.studyStartTime, end_time: session.studyEndTime,
     total_duration_ms: new Date(session.studyEndTime) - new Date(session.studyStartTime), number_of_trials: session.responses.length,
     number_of_attention_checks: checks.length, number_of_attention_checks_correct: correct,
-    passed_attention_check: checks.length === 0 || correct / checks.length >= ATTENTION_PASS_THRESHOLD, completion_status: "complete" },
+    passed_attention_check: checks.length > 0 && correct / checks.length >= ATTENTION_PASS_THRESHOLD,
+    completion_status: "complete", is_test: Boolean(session.isTest) },
     responses: session.responses };
 }
 
@@ -146,7 +155,9 @@ startButton.addEventListener("click", async () => {
   if (startButton.disabled) return;
   startButton.disabled = true; registrationMessage.textContent = "Creating your pseudonymous participant ID…";
   try {
-    const participantId = await emailToParticipantId(participantEmail.value.trim().toLowerCase());
+    const participantId = TEST_MODE
+      ? randomParticipantId()
+      : await emailToParticipantId(participantEmail.value.trim().toLowerCase());
     session = createSession(participantId);
     participantEmail.value = ""; saveSession(); renderTrial();
   } catch (error) {

@@ -10,6 +10,8 @@ A static A/B preference study for comparing two motion-generation methods on the
 4. Test locally with `python3 -m http.server 8000` and deploy with GitHub Pages.
 5. See `analysis/README.md` for data export and analysis.
 
+To run `trial_test01`, `trial_test02`, and one attention check with real backend submission, open the study with `?test=1`, for example `http://localhost:8000/?test=1`. The three questions are randomized, test sessions are tagged in Supabase, and they are excluded from analysis by default.
+
 The browser normalizes the submitted email and converts it into a deterministic UUID using SHA-256. Only that UUID is sent to Supabase; the raw email is not stored. This is pseudonymization rather than irreversible anonymization.
 
 Each participant receives 15 randomly selected study trials and 2 attention checks in randomized order, for 17 questions total. Each attention check randomly instructs the participant to select A, B, or No preference.

@@ -1,6 +1,8 @@
 // Replace every placeholder prompt with the instruction used to generate that trial's videos.
 // Update each type to match the actual prompt: "sequence" or "kinematic".
 const TRIAL_CONFIG = [
+  { id: "trial_test01", type: "sequence", prompt: "This is a test prompt1." },
+  { id: "trial_test02", type: "kinematic", prompt: "This is a test prompt2." },
   { id: "trial_001", type: "sequence", prompt: "Replace with the motion prompt for trial 001." },
   { id: "trial_002", type: "sequence", prompt: "Replace with the motion prompt for trial 002." },
   { id: "trial_003", type: "sequence", prompt: "Replace with the motion prompt for trial 003." },
@@ -33,13 +35,18 @@ const TRIAL_CONFIG = [
   { id: "trial_030", type: "kinematic", prompt: "Replace with the motion prompt for trial 030." }
 ];
 
-const TRIALS = TRIAL_CONFIG.map(trial => ({
+function configureTrial(trial) {
+  return {
   ...trial,
   method1: `videos/${trial.id}_method1.mp4`,
   method2: `videos/${trial.id}_method2.mp4`,
-  method1Name: "method1",
-  method2Name: "method2"
-}));
+  method1Name: "Pure KIMODO",
+  method2Name: "Moa-KIMODO"
+  };
+}
+
+const TEST_TRIALS = TRIAL_CONFIG.filter(trial => trial.id.startsWith("trial_test")).map(configureTrial);
+const TRIALS = TRIAL_CONFIG.filter(trial => !trial.id.startsWith("trial_test")).map(configureTrial);
 
 // Attention checks are separate from the 30 study trials.
 // Replace these video paths with the attention-check videos.
@@ -49,8 +56,8 @@ const ATTENTION_CHECKS = [
     type: "attention",
     method1: "videos/attention_001_method1.mp4",
     method2: "videos/attention_001_method2.mp4",
-    method1Name: "attention_method1",
-    method2Name: "attention_method2",
+    method1Name: "Pure KIMODO",
+    method2Name: "Moa-KIMODO",
     attention_check: true
   },
   {
@@ -58,8 +65,8 @@ const ATTENTION_CHECKS = [
     type: "attention",
     method1: "videos/attention_002_method1.mp4",
     method2: "videos/attention_002_method2.mp4",
-    method1Name: "attention_method1",
-    method2Name: "attention_method2",
+    method1Name: "Pure KIMODO",
+    method2Name: "Moa-KIMODO",
     attention_check: true
   }
 ];
