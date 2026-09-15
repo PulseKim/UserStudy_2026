@@ -89,13 +89,19 @@ def main():
     correct_checks=pd.to_numeric(sessions.number_of_attention_checks_correct,errors="coerce").fillna(0)
     passed_all_checks=total_checks.gt(0) & correct_checks.eq(total_checks)
     attention=passed_all_checks.value_counts().rename_axis("passed").rename("participants")
+    total_comprehension=pd.to_numeric(sessions.number_of_comprehension_checks,errors="coerce").fillna(0)
+    correct_comprehension=pd.to_numeric(sessions.number_of_comprehension_checks_correct,errors="coerce").fillna(0)
+    passed_comprehension=total_comprehension.gt(0) & correct_comprehension.eq(total_comprehension)
+    comprehension=passed_comprehension.value_counts().rename_axis("passed").rename("participants")
     total_participants=len(sessions)
-    eligible=sessions[passed_all_checks]
+    eligible=sessions[passed_all_checks & passed_comprehension]
     responses=responses[responses.participant_id.isin(eligible.participant_id)].copy()
-    study=responses[~responses.is_attention_check.fillna(False)].copy()
+    is_comprehension=responses["is_comprehension_check"] if "is_comprehension_check" in responses else pd.Series(False,index=responses.index)
+    study=responses[~responses.is_attention_check.fillna(False) & ~is_comprehension.fillna(False)].copy()
     OUT.mkdir(parents=True,exist_ok=True); FIG.mkdir(parents=True,exist_ok=True)
     timestamp=datetime.now(timezone.utc).strftime("%m%d%H%M")
     attention.to_csv(OUT/f"attention_summary_{timestamp}.csv")
+    comprehension.to_csv(OUT/f"comprehension_summary_{timestamp}.csv")
     for trial_type in ["sequence","kinematic"]:
         summary=response_summary(study,trial_type)
         summary.to_csv(OUT/f"{trial_type}_{timestamp}.csv",index=False)

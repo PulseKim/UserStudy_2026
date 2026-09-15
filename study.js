@@ -2,9 +2,10 @@
 
 const STUDY_TRIALS_PER_PARTICIPANT = 15;
 const ATTENTION_CHECKS_PER_PARTICIPANT = 2;
+const COMPREHENSION_CHECKS_PER_PARTICIPANT = 2;
 const ATTENTION_PASS_THRESHOLD = 1.0;
 const TEST_MODE = new URLSearchParams(window.location.search).get("test") === "1";
-const STORAGE_KEY = TEST_MODE ? "motion-preference-study-session-v5-test" : "motion-preference-study-session-v4";
+const STORAGE_KEY = TEST_MODE ? "motion-preference-study-session-v6-test" : "motion-preference-study-session-v5";
 const $ = selector => document.querySelector(selector);
 const views = { landing: $("#landing-view"), study: $("#study-view"), completion: $("#completion-view") };
 const consentCheckbox = $("#consent-checkbox"), startButton = $("#start-button");
@@ -31,18 +32,25 @@ function createSession(participantId) {
   if (TRIALS.some(t => !["sequence", "kinematic"].includes(t.type))) throw new Error('Every trial type must be "sequence" or "kinematic".');
   if (TRIALS.some(t => typeof t.prompt !== "string" || !t.prompt.trim())) throw new Error("Every trial must have a motion prompt.");
   if (!Array.isArray(ATTENTION_CHECKS) || ATTENTION_CHECKS.length < ATTENTION_CHECKS_PER_PARTICIPANT) throw new Error(`Configure at least ${ATTENTION_CHECKS_PER_PARTICIPANT} attention checks.`);
+  if (!Array.isArray(COMPREHENSION_CHECKS) || COMPREHENSION_CHECKS.length < COMPREHENSION_CHECKS_PER_PARTICIPANT) throw new Error(`Configure at least ${COMPREHENSION_CHECKS_PER_PARTICIPANT} comprehension checks.`);
+  if (COMPREHENSION_CHECKS.some(t => !["sequence", "kinematic"].includes(t.type) || typeof t.prompt !== "string" || !t.prompt.trim())) throw new Error("Every comprehension check must look like a regular study trial.");
+  if (COMPREHENSION_CHECKS.some(t => !["method1", "method2", "none"].includes(t.expected_method))) throw new Error('Every comprehension check must set expected_method to "method1", "method2", or "none".');
   if (!Array.isArray(TEST_TRIALS) || TEST_TRIALS.length !== 2) throw new Error("Configure exactly two test trials.");
-  if (new Set([...TRIALS, ...ATTENTION_CHECKS].map(t => t.id)).size !== TRIALS.length + ATTENTION_CHECKS.length) throw new Error("Study and attention-check IDs must be unique.");
+  const allTrials = [...TRIALS, ...ATTENTION_CHECKS, ...COMPREHENSION_CHECKS];
+  if (new Set(allTrials.map(t => t.id)).size !== allTrials.length) throw new Error("Study and quality-check IDs must be unique.");
   const studyTrials = TEST_MODE ? TEST_TRIALS : shuffle(TRIALS).slice(0, STUDY_TRIALS_PER_PARTICIPANT);
   const attentionTrials = TEST_MODE
     ? shuffle(ATTENTION_CHECKS).slice(0, 1)
     : shuffle(ATTENTION_CHECKS).slice(0, ATTENTION_CHECKS_PER_PARTICIPANT);
+  const comprehensionTrials = TEST_MODE
+    ? shuffle(COMPREHENSION_CHECKS).slice(0, 1)
+    : shuffle(COMPREHENSION_CHECKS).slice(0, COMPREHENSION_CHECKS_PER_PARTICIPANT);
   const attentionInstructions = [
     { position: "left", prompt: "This is an attention test. Please select A for this question." },
     { position: "right", prompt: "This is an attention test. Please select B for this question." },
     { position: "none", prompt: "This is an attention test. Please select \"No preference\" for this question." }
   ];
-  const selectedTrials = shuffle([...studyTrials, ...attentionTrials]).map((t, i) => {
+  const selectedTrials = shuffle([...studyTrials, ...attentionTrials, ...comprehensionTrials]).map((t, i) => {
     const firstLeft = Math.random() < .5;
     const attentionInstruction = t.attention_check
       ? attentionInstructions[Math.floor(Math.random() * attentionInstructions.length)]
@@ -52,6 +60,9 @@ function createSession(participantId) {
       prompt: attentionInstruction ? attentionInstruction.prompt : t.prompt,
       isAttentionCheck: Boolean(t.attention_check),
       expectedAttentionResponse: attentionInstruction ? attentionInstruction.position : null,
+      isComprehensionCheck: Boolean(t.comprehension_check),
+      expectedComprehensionMethod: t.expected_method === "method1" ? t.method1Name
+        : t.expected_method === "method2" ? t.method2Name : t.expected_method,
       leftMethod: firstLeft ? t.method1Name : t.method2Name, rightMethod: firstLeft ? t.method2Name : t.method1Name,
       leftSrc: firstLeft ? t.method1 : t.method2, rightSrc: firstLeft ? t.method2 : t.method1
     };
@@ -108,20 +119,28 @@ function recordAndAdvance() {
   if (!session.currentSelection) return;
   const t = session.selectedTrials[session.currentIndex], position = session.currentSelection;
   const preferred = position === "left" ? t.leftMethod : position === "right" ? t.rightMethod : "none";
-  const correct = t.isAttentionCheck ? (t.expectedAttentionResponse === position || t.expectedAttentionResponse === preferred) : null;
+  const attentionCorrect = t.isAttentionCheck ? (t.expectedAttentionResponse === position || t.expectedAttentionResponse === preferred) : null;
+  const comprehensionCorrect = t.isComprehensionCheck ? t.expectedComprehensionMethod === preferred : null;
   session.responses.push({ participant_id: session.participantId, trial_id: t.trialId, trial_order: t.trialOrder,
     trial_type: t.trialType, prompt: t.prompt, left_method: t.leftMethod, right_method: t.rightMethod,
     response_position: position, preferred_method: preferred, response_time_ms: Math.max(0, Date.now() - session.trialShownAt),
-    is_attention_check: t.isAttentionCheck, attention_check_correct: correct, timestamp: new Date().toISOString() });
+    is_attention_check: t.isAttentionCheck, attention_check_correct: attentionCorrect,
+    is_comprehension_check: t.isComprehensionCheck, comprehension_check_correct: comprehensionCorrect,
+    timestamp: new Date().toISOString() });
   session.currentIndex += 1; session.currentSelection = null; session.trialShownAt = Date.now(); saveSession(); renderTrial();
 }
 
 function buildPayload() {
   const checks = session.responses.filter(r => r.is_attention_check), correct = checks.filter(r => r.attention_check_correct).length;
+  const comprehensionChecks = session.responses.filter(r => r.is_comprehension_check);
+  const correctComprehensionChecks = comprehensionChecks.filter(r => r.comprehension_check_correct).length;
   return { session: { participant_id: session.participantId, start_time: session.studyStartTime, end_time: session.studyEndTime,
     total_duration_ms: new Date(session.studyEndTime) - new Date(session.studyStartTime), number_of_trials: session.responses.length,
     number_of_attention_checks: checks.length, number_of_attention_checks_correct: correct,
     passed_attention_check: checks.length > 0 && correct / checks.length >= ATTENTION_PASS_THRESHOLD,
+    number_of_comprehension_checks: comprehensionChecks.length,
+    number_of_comprehension_checks_correct: correctComprehensionChecks,
+    passed_comprehension_check: comprehensionChecks.length > 0 && correctComprehensionChecks === comprehensionChecks.length,
     completion_status: "complete", is_test: Boolean(session.isTest) },
     responses: session.responses };
 }

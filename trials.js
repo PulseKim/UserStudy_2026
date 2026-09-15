@@ -70,3 +70,23 @@ const ATTENTION_CHECKS = [
     attention_check: true
   }
 ];
+
+// Comprehension checks look exactly like regular study trials. Each prompt and
+// video pair must make the configured expected method unambiguously correct.
+// Replace these placeholders and add the four corresponding video files.
+const COMPREHENSION_CHECKS = [
+  configureTrial({
+    id: "comprehension_001",
+    type: "sequence",
+    prompt: "Replace with the motion prompt for comprehension check 001.",
+    comprehension_check: true,
+    expected_method: "method1"
+  }),
+  configureTrial({
+    id: "comprehension_002",
+    type: "kinematic",
+    prompt: "Replace with the motion prompt for comprehension check 002.",
+    comprehension_check: true,
+    expected_method: "method2"
+  })
+];
