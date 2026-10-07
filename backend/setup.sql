@@ -4,10 +4,16 @@ create table if not exists public.study_sessions (
   number_of_attention_checks integer not null check (number_of_attention_checks >= 0),
   number_of_attention_checks_correct integer not null check (number_of_attention_checks_correct >= 0),
   passed_attention_check boolean not null, completion_status text not null check (completion_status in ('complete','incomplete')),
+  number_of_comprehension_checks integer not null check (number_of_comprehension_checks >= 0),
+  number_of_comprehension_checks_correct integer not null check (number_of_comprehension_checks_correct >= 0),
+  passed_comprehension_check boolean not null,
   is_test boolean not null default false,
   created_at timestamptz not null default now()
 );
 alter table public.study_sessions add column if not exists is_test boolean not null default false;
+alter table public.study_sessions add column if not exists number_of_comprehension_checks integer not null default 0;
+alter table public.study_sessions add column if not exists number_of_comprehension_checks_correct integer not null default 0;
+alter table public.study_sessions add column if not exists passed_comprehension_check boolean not null default false;
 create table if not exists public.trial_responses (
   id bigint generated always as identity primary key, participant_id uuid not null references public.study_sessions(participant_id),
   trial_id text not null, trial_order integer not null check (trial_order > 0),
@@ -18,6 +24,8 @@ create table if not exists public.trial_responses (
   attention_check_correct boolean, "timestamp" timestamptz not null, created_at timestamptz not null default now(), unique(participant_id, trial_order)
 );
 alter table public.trial_responses add column if not exists prompt text;
+alter table public.trial_responses add column if not exists is_comprehension_check boolean not null default false;
+alter table public.trial_responses add column if not exists comprehension_check_correct boolean;
 alter table public.trial_responses drop constraint if exists trial_responses_trial_type_check;
 alter table public.trial_responses add constraint trial_responses_trial_type_check
   check (trial_type in ('sequence','kinematic','attention'));
@@ -35,19 +43,25 @@ begin
      or jsonb_array_length(payload->'responses') <> (s->>'number_of_trials')::int
      or jsonb_array_length(payload->'responses') > 500 then raise exception 'Invalid study payload'; end if;
   insert into study_sessions(participant_id,start_time,end_time,total_duration_ms,number_of_trials,number_of_attention_checks,
-    number_of_attention_checks_correct,passed_attention_check,completion_status,is_test,created_at)
+    number_of_attention_checks_correct,passed_attention_check,number_of_comprehension_checks,
+    number_of_comprehension_checks_correct,passed_comprehension_check,completion_status,is_test,created_at)
     values ((s->>'participant_id')::uuid,(s->>'start_time')::timestamptz,(s->>'end_time')::timestamptz,
     (s->>'total_duration_ms')::bigint,(s->>'number_of_trials')::int,(s->>'number_of_attention_checks')::int,
-    (s->>'number_of_attention_checks_correct')::int,(s->>'passed_attention_check')::boolean,s->>'completion_status',
+    (s->>'number_of_attention_checks_correct')::int,(s->>'passed_attention_check')::boolean,
+    (s->>'number_of_comprehension_checks')::int,(s->>'number_of_comprehension_checks_correct')::int,
+    (s->>'passed_comprehension_check')::boolean,s->>'completion_status',
     coalesce((s->>'is_test')::boolean,false),now())
     on conflict(participant_id) do nothing;
   for r in select value from jsonb_array_elements(payload->'responses') loop
     if r->>'participant_id' <> s->>'participant_id' then raise exception 'Participant mismatch'; end if;
     insert into trial_responses(participant_id,trial_id,trial_order,trial_type,prompt,left_method,right_method,response_position,
-      preferred_method,response_time_ms,is_attention_check,attention_check_correct,"timestamp") values
+      preferred_method,response_time_ms,is_attention_check,attention_check_correct,is_comprehension_check,
+      comprehension_check_correct,"timestamp") values
       ((r->>'participant_id')::uuid,r->>'trial_id',(r->>'trial_order')::int,r->>'trial_type',r->>'prompt',
        r->>'left_method',r->>'right_method',r->>'response_position',r->>'preferred_method',(r->>'response_time_ms')::bigint,
-       (r->>'is_attention_check')::boolean,(r->>'attention_check_correct')::boolean,(r->>'timestamp')::timestamptz)
+       (r->>'is_attention_check')::boolean,(r->>'attention_check_correct')::boolean,
+       coalesce((r->>'is_comprehension_check')::boolean,false),(r->>'comprehension_check_correct')::boolean,
+       (r->>'timestamp')::timestamptz)
       on conflict(participant_id,trial_order) do nothing;
   end loop;
 end $$;

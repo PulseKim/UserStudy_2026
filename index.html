@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Motion Preference Study</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
   <main class="page-shell">
@@ -51,15 +51,17 @@
       </div>
 
       <div class="playback-controls">
+        <button id="play-a-button" type="button">Play A</button>
         <button id="play-both-button" type="button">Play Both</button>
+        <button id="play-b-button" type="button">Play B</button>
       </div>
 
       <fieldset class="response-group">
         <legend>Which motion better matches the given prompt?</legend>
         <div class="response-options">
           <label class="response-option"><input type="radio" name="response" value="left"> <span>A</span></label>
-          <label class="response-option"><input type="radio" name="response" value="right"> <span>B</span></label>
           <label class="response-option"><input type="radio" name="response" value="none"> <span>No preference</span></label>
+          <label class="response-option"><input type="radio" name="response" value="right"> <span>B</span></label>
         </div>
       </fieldset>
 
@@ -76,7 +78,7 @@
   </main>
 
   <script src="config.js?v=10"></script>
-  <script src="trials.js?v=11"></script>
-  <script src="study.js?v=11"></script>
+  <script src="trials.js?v=12"></script>
+  <script src="study.js?v=15"></script>
 </body>
 </html>

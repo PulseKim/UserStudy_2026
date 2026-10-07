@@ -12,7 +12,7 @@ const consentCheckbox = $("#consent-checkbox"), startButton = $("#start-button")
 const participantEmail = $("#participant-email"), registrationMessage = $("#registration-message");
 const progress = $("#progress"), leftVideo = $("#left-video"), rightVideo = $("#right-video");
 const trialPrompt = $("#trial-prompt");
-const playBothButton = $("#play-both-button"), nextButton = $("#next-button");
+const playAButton = $("#play-a-button"), playBothButton = $("#play-both-button"), playBButton = $("#play-b-button"), nextButton = $("#next-button");
 const message = $("#study-message"), completionMessage = $("#completion-message");
 const responseInputs = [...document.querySelectorAll('input[name="response"]')];
 let session = loadSession();
@@ -86,12 +86,31 @@ function randomParticipantId() {
 }
 
 function loadSession() {
-  try { return JSON.parse(sessionStorage.getItem(STORAGE_KEY)); }
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY));
+    if (!saved) return null;
+    const availableTrials = TEST_MODE
+      ? [...TEST_TRIALS, ...ATTENTION_CHECKS, ...COMPREHENSION_CHECKS]
+      : [...TRIALS, ...ATTENTION_CHECKS, ...COMPREHENSION_CHECKS];
+    const availableIds = new Set(availableTrials.map(trial => trial.id));
+    const isCompatible = Array.isArray(saved.selectedTrials)
+      && saved.selectedTrials.every(trial => availableIds.has(trial.trialId));
+    if (!isCompatible) {
+      sessionStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+    return saved;
+  }
   catch (error) { console.warn("Could not restore session", error); return null; }
 }
 function saveSession() { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session)); }
 function showView(name) { Object.entries(views).forEach(([key, node]) => { node.hidden = key !== name; }); }
 function stopVideos() { leftVideo.pause(); rightVideo.pause(); }
+
+function updateVideoSelection(position) {
+  leftVideo.closest(".video-card").classList.toggle("selected", position === "left");
+  rightVideo.closest(".video-card").classList.toggle("selected", position === "right");
+}
 
 function renderTrial() {
   const trial = session.selectedTrials[session.currentIndex];
@@ -101,17 +120,35 @@ function renderTrial() {
   trialPrompt.textContent = trial.prompt;
   message.textContent = "";
   responseInputs.forEach(input => { input.checked = input.value === session.currentSelection; });
+  updateVideoSelection(session.currentSelection);
   nextButton.disabled = !session.currentSelection;
   nextButton.textContent = session.currentIndex === session.selectedTrials.length - 1 ? "Submit" : "Next";
   showView("study");
+  playBoth({ silent: true });
 }
 
-function playBoth() {
+function playBoth({ silent = false } = {}) {
   message.textContent = ""; stopVideos();
   try { leftVideo.currentTime = 0; rightVideo.currentTime = 0; }
-  catch (_) { message.textContent = "The videos are still loading. Please try again."; return; }
+  catch (_) {
+    if (!silent) message.textContent = "The videos are still loading. Please try again.";
+    return;
+  }
   Promise.allSettled([leftVideo.play(), rightVideo.play()]).then(results => {
-    if (results.some(r => r.status === "rejected")) { stopVideos(); message.textContent = "Playback could not start. Please press Play Both again."; }
+    if (results.some(r => r.status === "rejected")) {
+      stopVideos();
+      if (!silent) message.textContent = "Playback could not start. Please press Play Both again.";
+    }
+  });
+}
+
+function playOne(video) {
+  message.textContent = "";
+  stopVideos();
+  try { video.currentTime = 0; }
+  catch (_) { message.textContent = "The video is still loading. Please try again."; return; }
+  video.play().catch(() => {
+    message.textContent = "Playback could not start. Please try again.";
   });
 }
 
@@ -183,8 +220,16 @@ startButton.addEventListener("click", async () => {
     console.error(error); registrationMessage.textContent = "The study could not start. Please refresh the page and try again."; updateStartButton();
   }
 });
-playBothButton.addEventListener("click", playBoth); nextButton.addEventListener("click", recordAndAdvance);
-responseInputs.forEach(input => input.addEventListener("change", () => { session.currentSelection = input.value; saveSession(); nextButton.disabled = false; }));
+playAButton.addEventListener("click", () => playOne(leftVideo));
+playBothButton.addEventListener("click", playBoth);
+playBButton.addEventListener("click", () => playOne(rightVideo));
+nextButton.addEventListener("click", recordAndAdvance);
+responseInputs.forEach(input => input.addEventListener("change", () => {
+  session.currentSelection = input.value;
+  updateVideoSelection(input.value);
+  saveSession();
+  nextButton.disabled = false;
+}));
 if (session?.status === "in_progress") renderTrial();
 else if (session?.status === "complete") { if (session.submissionStatus === "submitting") session.submissionStatus = "failed"; finishStudy(); }
 else showView("landing");
