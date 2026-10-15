@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Motion Preference Study</title>
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
   <main class="page-shell">
     <section id="landing-view" class="panel" aria-labelledby="landing-title">
       <h1 id="landing-title">Motion Agent User Study</h1>
-      <p class="study-instructions">You will be shown a series of motion prompts. For each prompt, you will see two character motion videos labeled A and B. Take your time to watch both videos, then select the motion that better matches the given prompt. Choose A or B whenever one video is a better match, even if neither is perfect. Select "No preference" only when neither video matches the prompt better than the other.</p>
+      <p class="study-instructions">You will be shown a series of motion prompts. For each prompt, you will see two character motion videos labeled A and B. Take your time to watch both videos, then select the motion that better matches the given prompt. You must choose A or B for every prompt: even if neither video is perfect, or the difference is small, pick the one that is closer to the prompt. The first questions are short practice questions that check these instructions.</p>
       <div class="identity-fields">
         <label for="participant-email">Email</label>
         <input id="participant-email" name="email" type="email" autocomplete="email" required>
@@ -33,6 +33,8 @@
         <h1 id="study-title">Motion Preference Study</h1>
         <p id="progress" class="progress" aria-live="polite"></p>
       </div>
+
+      <p id="practice-banner" class="practice-banner" hidden><strong>Practice question.</strong> Watch both videos and choose the one that better matches the prompt. If neither is perfect, pick the one that is closer.</p>
 
       <div class="prompt-display" aria-live="polite">
         <strong>Prompt:</strong>
@@ -57,10 +59,9 @@
       </div>
 
       <fieldset class="response-group">
-        <legend>Which motion better matches the given prompt?</legend>
+        <legend>Which motion better matches the given prompt? <span class="legend-hint">(If neither is perfect, pick the closer one.)</span></legend>
         <div class="response-options">
           <label class="response-option"><input type="radio" name="response" value="left"> <span>A</span></label>
-          <label class="response-option"><input type="radio" name="response" value="none"> <span>No preference</span></label>
           <label class="response-option"><input type="radio" name="response" value="right"> <span>B</span></label>
         </div>
       </fieldset>
@@ -77,8 +78,22 @@
     </section>
   </main>
 
+  <div id="instruction-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="instruction-modal-title" hidden>
+    <div class="modal-box">
+      <h2 id="instruction-modal-title">Let&rsquo;s review the instructions</h2>
+      <p id="instruction-modal-body"></p>
+      <ul>
+        <li>Read the prompt, then watch both videos (A and B).</li>
+        <li>Choose the video whose motion better matches the prompt, even if neither is perfect.</li>
+        <li>If neither video is perfect, pick the one that is closer to the prompt.</li>
+      </ul>
+      <p>You need to answer this question correctly before you can continue.</p>
+      <button id="instruction-modal-close" class="primary-button" type="button">Try again</button>
+    </div>
+  </div>
+
   <script src="config.js?v=10"></script>
-  <script src="trials.js?v=12"></script>
-  <script src="study.js?v=15"></script>
+  <script src="trials.js?v=14"></script>
+  <script src="study.js?v=18"></script>
 </body>
 </html>

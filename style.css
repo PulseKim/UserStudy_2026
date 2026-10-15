@@ -83,7 +83,7 @@ button:disabled { color: #8b8e92; border-color: #c6c8ca; cursor: not-allowed; }
 
 .response-group { margin: 0; padding: 26px; border: 1px solid #c8cacc; }
 .response-group legend { padding: 0 10px; font-size: 1.25rem; font-weight: 650; }
-.response-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.response-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
 .response-option { display: flex; justify-content: center; align-items: center; gap: 11px; min-height: 64px; padding: 12px; border: 1px solid #aeb1b4; border-radius: 3px; font-size: 1.12rem; cursor: pointer; }
 .response-option:hover { border-color: #4f46e5; background: #f5f3ff; }
 .response-option input { width: 20px; height: 20px; }
@@ -92,6 +92,15 @@ button:disabled { color: #8b8e92; border-color: #c6c8ca; cursor: not-allowed; }
 .next-row { display: flex; justify-content: flex-end; margin-top: 8px; }
 .completion-panel { text-align: center; }
 .completion-panel p { margin-inline: auto; }
+
+.legend-hint { font-size: .95rem; font-weight: 400; color: #555; }
+.practice-banner { margin: 16px 0 0; padding: 14px 18px; background: #eef3fb; border-left: 4px solid #4f46e5; }
+.modal-backdrop { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(20, 22, 25, .6); }
+.modal-backdrop[hidden] { display: none; }
+.modal-box { max-width: 560px; padding: 28px 30px; background: #fff; border-radius: 4px; border-top: 5px solid #c0392b; box-shadow: 0 10px 40px rgba(0, 0, 0, .35); }
+.modal-box h2 { margin: 0 0 12px; font-size: 1.4rem; }
+.modal-box ul { padding-left: 22px; }
+.modal-box button { margin-top: 8px; }
 
 @media (max-width: 720px) {
   :root { font-size: 16px; }

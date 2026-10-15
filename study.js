@@ -5,7 +5,8 @@ const ATTENTION_CHECKS_PER_PARTICIPANT = 2;
 const COMPREHENSION_CHECKS_PER_PARTICIPANT = 2;
 const ATTENTION_PASS_THRESHOLD = 1.0;
 const TEST_MODE = new URLSearchParams(window.location.search).get("test") === "1";
-const STORAGE_KEY = TEST_MODE ? "motion-preference-study-session-v6-test" : "motion-preference-study-session-v5";
+// v7: forced choice (A/B only); older saved sessions may contain "No preference" checks, so they are not resumed.
+const STORAGE_KEY = TEST_MODE ? "motion-preference-study-session-v7-test" : "motion-preference-study-session-v7";
 const $ = selector => document.querySelector(selector);
 const views = { landing: $("#landing-view"), study: $("#study-view"), completion: $("#completion-view") };
 const consentCheckbox = $("#consent-checkbox"), startButton = $("#start-button");
@@ -14,6 +15,8 @@ const progress = $("#progress"), leftVideo = $("#left-video"), rightVideo = $("#
 const trialPrompt = $("#trial-prompt");
 const playAButton = $("#play-a-button"), playBothButton = $("#play-both-button"), playBButton = $("#play-b-button"), nextButton = $("#next-button");
 const message = $("#study-message"), completionMessage = $("#completion-message");
+const practiceBanner = $("#practice-banner"), instructionModal = $("#instruction-modal"), instructionModalClose = $("#instruction-modal-close");
+const instructionModalBody = $("#instruction-modal-body");
 const responseInputs = [...document.querySelectorAll('input[name="response"]')];
 let session = loadSession();
 
@@ -34,7 +37,7 @@ function createSession(participantId) {
   if (!Array.isArray(ATTENTION_CHECKS) || ATTENTION_CHECKS.length < ATTENTION_CHECKS_PER_PARTICIPANT) throw new Error(`Configure at least ${ATTENTION_CHECKS_PER_PARTICIPANT} attention checks.`);
   if (!Array.isArray(COMPREHENSION_CHECKS) || COMPREHENSION_CHECKS.length < COMPREHENSION_CHECKS_PER_PARTICIPANT) throw new Error(`Configure at least ${COMPREHENSION_CHECKS_PER_PARTICIPANT} comprehension checks.`);
   if (COMPREHENSION_CHECKS.some(t => !["sequence", "kinematic"].includes(t.type) || typeof t.prompt !== "string" || !t.prompt.trim())) throw new Error("Every comprehension check must look like a regular study trial.");
-  if (COMPREHENSION_CHECKS.some(t => !["method1", "method2", "none"].includes(t.expected_method))) throw new Error('Every comprehension check must set expected_method to "method1", "method2", or "none".');
+  if (COMPREHENSION_CHECKS.some(t => !["method1", "method2"].includes(t.expected_method))) throw new Error('Every comprehension check must set expected_method to "method1" or "method2".');
   if (!Array.isArray(TEST_TRIALS) || TEST_TRIALS.length !== 2) throw new Error("Configure exactly two test trials.");
   const allTrials = [...TRIALS, ...ATTENTION_CHECKS, ...COMPREHENSION_CHECKS];
   if (new Set(allTrials.map(t => t.id)).size !== allTrials.length) throw new Error("Study and quality-check IDs must be unique.");
@@ -42,16 +45,14 @@ function createSession(participantId) {
   const attentionTrials = TEST_MODE
     ? shuffle(ATTENTION_CHECKS).slice(0, 1)
     : shuffle(ATTENTION_CHECKS).slice(0, ATTENTION_CHECKS_PER_PARTICIPANT);
-  const comprehensionTrials = TEST_MODE
-    ? shuffle(COMPREHENSION_CHECKS).slice(0, 1)
-    : shuffle(COMPREHENSION_CHECKS).slice(0, COMPREHENSION_CHECKS_PER_PARTICIPANT);
+  // Comprehension checks are fixed: always first, in the configured order.
+  const comprehensionTrials = COMPREHENSION_CHECKS.slice(0, TEST_MODE ? 1 : COMPREHENSION_CHECKS_PER_PARTICIPANT);
   const attentionInstructions = [
     { position: "left", prompt: "This is an attention test. Please select A for this question." },
-    { position: "right", prompt: "This is an attention test. Please select B for this question." },
-    { position: "none", prompt: "This is an attention test. Please select \"No preference\" for this question." }
+    { position: "right", prompt: "This is an attention test. Please select B for this question." }
   ];
-  const selectedTrials = shuffle([...studyTrials, ...attentionTrials, ...comprehensionTrials]).map((t, i) => {
-    const firstLeft = Math.random() < .5;
+  const selectedTrials = [...comprehensionTrials, ...shuffle([...studyTrials, ...attentionTrials])].map((t, i) => {
+    const firstLeft = t.comprehension_check ? true : Math.random() < .5;
     const attentionInstruction = t.attention_check
       ? attentionInstructions[Math.floor(Math.random() * attentionInstructions.length)]
       : null;
@@ -60,7 +61,7 @@ function createSession(participantId) {
       prompt: attentionInstruction ? attentionInstruction.prompt : t.prompt,
       isAttentionCheck: Boolean(t.attention_check),
       expectedAttentionResponse: attentionInstruction ? attentionInstruction.position : null,
-      isComprehensionCheck: Boolean(t.comprehension_check),
+      isComprehensionCheck: Boolean(t.comprehension_check), comprehensionRetried: false, comprehensionHint: t.hint || "",
       expectedComprehensionMethod: t.expected_method === "method1" ? t.method1Name
         : t.expected_method === "method2" ? t.method2Name : t.expected_method,
       leftMethod: firstLeft ? t.method1Name : t.method2Name, rightMethod: firstLeft ? t.method2Name : t.method1Name,
@@ -118,6 +119,7 @@ function renderTrial() {
   stopVideos(); leftVideo.src = trial.leftSrc; rightVideo.src = trial.rightSrc; leftVideo.load(); rightVideo.load();
   progress.textContent = `Trial ${session.currentIndex + 1} / ${session.selectedTrials.length}`;
   trialPrompt.textContent = trial.prompt;
+  practiceBanner.hidden = !trial.isComprehensionCheck;
   message.textContent = "";
   responseInputs.forEach(input => { input.checked = input.value === session.currentSelection; });
   updateVideoSelection(session.currentSelection);
@@ -155,9 +157,20 @@ function playOne(video) {
 function recordAndAdvance() {
   if (!session.currentSelection) return;
   const t = session.selectedTrials[session.currentIndex], position = session.currentSelection;
-  const preferred = position === "left" ? t.leftMethod : position === "right" ? t.rightMethod : "none";
+  const preferred = position === "left" ? t.leftMethod : t.rightMethod;
+  if (t.isComprehensionCheck && t.expectedComprehensionMethod !== preferred) {
+    // Wrong answer on a comprehension question: show the instructions and block progress until it is answered correctly.
+    t.comprehensionRetried = true;
+    session.currentSelection = null; saveSession();
+    responseInputs.forEach(input => { input.checked = false; });
+    updateVideoSelection(null); nextButton.disabled = true;
+    instructionModalBody.textContent = t.comprehensionHint
+      || "That answer does not match what the videos show. One of the two videos clearly matches the prompt better than the other.";
+    instructionModal.hidden = false; instructionModalClose.focus();
+    return;
+  }
   const attentionCorrect = t.isAttentionCheck ? (t.expectedAttentionResponse === position || t.expectedAttentionResponse === preferred) : null;
-  const comprehensionCorrect = t.isComprehensionCheck ? t.expectedComprehensionMethod === preferred : null;
+  const comprehensionCorrect = t.isComprehensionCheck ? (t.expectedComprehensionMethod === preferred && !t.comprehensionRetried) : null;
   session.responses.push({ participant_id: session.participantId, trial_id: t.trialId, trial_order: t.trialOrder,
     trial_type: t.trialType, prompt: t.prompt, left_method: t.leftMethod, right_method: t.rightMethod,
     response_position: position, preferred_method: preferred, response_time_ms: Math.max(0, Date.now() - session.trialShownAt),
@@ -224,6 +237,7 @@ playAButton.addEventListener("click", () => playOne(leftVideo));
 playBothButton.addEventListener("click", playBoth);
 playBButton.addEventListener("click", () => playOne(rightVideo));
 nextButton.addEventListener("click", recordAndAdvance);
+instructionModalClose.addEventListener("click", () => { instructionModal.hidden = true; });
 responseInputs.forEach(input => input.addEventListener("change", () => {
   session.currentSelection = input.value;
   updateVideoSelection(input.value);

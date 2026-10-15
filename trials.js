@@ -26,13 +26,13 @@ const TRIAL_CONFIG = [
   { id: "trial_021", type: "kinematic", prompt: "A person walks at 1.1m/s forward while raising his both arms high" },
   { id: "trial_022", type: "kinematic", prompt: "A person sidesteps 2.0 m to the left while facing forward." },
   { id: "trial_023", type: "kinematic", prompt: "A person walks backward at 0.8 m/s." },
-  // { id: "trial_024", type: "kinematic", prompt: "A person turns 90 degrees in place." },
-  // { id: "trial_025", type: "kinematic", prompt: "A person holds a ball with a radius of 0.4 m in front of their chest with both hands." },
-  // { id: "trial_026", type: "kinematic", prompt: "A person walks 3.0 m forward while keeping both hands at least 0.2 m above their head." },
-  // { id: "trial_027", type: "kinematic", prompt: "A person walks forward, steps over an obstacle 0.3 m high, and continues walking forward." },
-  // { id: "trial_028", type: "kinematic", prompt: "A person crouches and walks forward under a horizontal bar that is 1.2 m above the floor." },
-  // { id: "trial_029", type: "kinematic", prompt: "A person stands with their feet 0.6 m apart while extending both arms sideways." },
-  // { id: "trial_030", type: "kinematic", prompt: "A person reaches forward with their right hand to touch a target 0.5 m in front of their chest." }
+  { id: "trial_024", type: "kinematic", prompt: "A person turns 90 degrees in place." },
+  { id: "trial_025", type: "kinematic", prompt: "A person holds a ball with a radius of 0.4 m in front of their chest with both hands." },
+  { id: "trial_026", type: "kinematic", prompt: "A person walks 3.0 m forward while keeping both hands at least 0.2 m above their head." },
+  { id: "trial_027", type: "kinematic", prompt: "A person walks forward, steps over an obstacle 0.3 m high, and continues walking forward." },
+  { id: "trial_028", type: "kinematic", prompt: "A person crouches and walks forward under a horizontal bar that is 1.2 m above the floor." },
+  { id: "trial_029", type: "kinematic", prompt: "A person stands with their feet 0.8 m apart while extending both arms sideways." },
+  { id: "trial_030", type: "kinematic", prompt: "A person reaches forward with their right hand to touch a target 0.5 m in front of their chest." }
 ];
 
 function configureTrial(trial) {
@@ -71,22 +71,25 @@ const ATTENTION_CHECKS = [
   }
 ];
 
-// Comprehension checks look exactly like regular study trials. Each prompt and
-// video pair must make the configured expected method unambiguously correct.
-// Replace these placeholders and add the four corresponding video files.
+// Comprehension checks double as the instructions and are always shown first, in this order,
+// with fixed video positions (not randomized). Videos: comprehension_00N_method1.mp4 is shown
+// as A, comprehension_00N_method2.mp4 as B. expected_method is the method whose video is the
+// correct (more generous) answer; hint is shown in the popup after a wrong answer.
 const COMPREHENSION_CHECKS = [
   configureTrial({
     id: "comprehension_001",
-    type: "sequence",
-    prompt: "Replace with the motion prompt for comprehension check 001.",
+    type: "kinematic",
+    prompt: "A person walks at 1.0m/s forward",
     comprehension_check: true,
-    expected_method: "method1"
+    expected_method: "method2",   // correct answer: B
+    hint: "Read the sentence carefully. B moves at almost 1 m/s, but A does not move at all."
   }),
   configureTrial({
     id: "comprehension_002",
     type: "kinematic",
-    prompt: "Replace with the motion prompt for comprehension check 002.",
+    prompt: "A person jumps at 0.3m high.",
     comprehension_check: true,
-    expected_method: "method2"
+    expected_method: "method1",   // correct answer: A
+    hint: "Of course, A cannot jump 0.3 m either, but it matches the prompt better than B. Please be generous like this when choosing: pick the one that is closer to the prompt."
   })
 ];

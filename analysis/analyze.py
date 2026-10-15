@@ -8,6 +8,7 @@ import pandas as pd
 
 ROOT=Path(__file__).parent; OUT=ROOT/"data"/"processed"; FIG=ROOT/"figures"
 plt.rcParams.update({"figure.dpi":150,"savefig.dpi":300,"axes.spines.top":False,"axes.spines.right":False})
+# Forced choice (A/B). "Neither" only appears for data collected before the No-preference option was removed.
 RESPONSE_ORDER=["Pure KIMODO","Moa-KIMODO","Neither"]
 RESPONSE_COLORS=["#635BFF","#00A6A6","#E879A9"]
 PLOT_BACKGROUND="#F3F0FA"
@@ -56,13 +57,15 @@ def response_summary(study, trial_type):
         "none":"Neither"
     })
     counts=choices.value_counts().reindex(RESPONSE_ORDER,fill_value=0)
+    if counts.get("Neither",0)==0:
+        counts=counts.drop("Neither")
     total=int(counts.sum())
     percentages=counts.div(total).mul(100) if total else counts.astype(float)
-    return pd.DataFrame({"response":RESPONSE_ORDER,"count":counts.values,"percentage":percentages.values})
+    return pd.DataFrame({"response":list(counts.index),"count":counts.values,"percentage":percentages.values})
 
 def response_plot(summary, trial_type, path, show_title=False):
     fig,ax=plt.subplots(figsize=(6.4,4.6))
-    bars=ax.bar(summary.response,summary.percentage,color=RESPONSE_COLORS,width=.62)
+    bars=ax.bar(summary.response,summary.percentage,color=RESPONSE_COLORS[:len(summary)],width=.62)
     if show_title:
         ax.set_title(f"Type: {trial_type.capitalize()}",fontsize=17,fontweight="bold",pad=16)
     ax.set_xlabel("")
