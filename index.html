@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Motion Preference Study</title>
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
   <main class="page-shell">
@@ -41,16 +41,21 @@
         <span id="trial-prompt"></span>
       </div>
 
-      <div class="video-grid">
-        <figure class="video-card">
-          <figcaption>A</figcaption>
+      <fieldset class="response-group video-response-group">
+        <legend>Which motion better matches the given prompt? <span class="legend-hint">(If neither is perfect, pick the closer one.)</span></legend>
+        <div class="video-grid">
+        <label class="video-card">
+          <input class="video-choice-input" type="radio" name="response" value="left">
+          <span class="video-caption">A</span>
           <video id="left-video" preload="auto" muted playsinline></video>
-        </figure>
-        <figure class="video-card">
-          <figcaption>B</figcaption>
+        </label>
+        <label class="video-card">
+          <input class="video-choice-input" type="radio" name="response" value="right">
+          <span class="video-caption">B</span>
           <video id="right-video" preload="auto" muted playsinline></video>
-        </figure>
-      </div>
+        </label>
+        </div>
+      </fieldset>
 
       <div class="playback-controls">
         <button id="play-a-button" type="button">Play A</button>
@@ -58,18 +63,17 @@
         <button id="play-b-button" type="button">Play B</button>
       </div>
 
-      <fieldset class="response-group">
-        <legend>Which motion better matches the given prompt? <span class="legend-hint">(If neither is perfect, pick the closer one.)</span></legend>
-        <div class="response-options">
-          <label class="response-option"><input type="radio" name="response" value="left"> <span>A</span></label>
-          <label class="response-option"><input type="radio" name="response" value="right"> <span>B</span></label>
-        </div>
-      </fieldset>
-
       <p id="study-message" class="status-message" role="status" aria-live="polite"></p>
       <div class="next-row">
         <button id="next-button" class="primary-button" type="button" disabled>Next</button>
       </div>
+    </section>
+
+    <section id="main-intro-view" class="panel main-intro-panel" aria-labelledby="main-intro-title" hidden>
+      <h1 id="main-intro-title">You&rsquo;re ready!</h1>
+      <p>You have completed the practice questions. The main study starts now.</p>
+      <p>Take your time, watch both videos,<br>and choose the motion that better matches each prompt.</p>
+      <button id="begin-main-study-button" class="primary-button" type="button">Begin Main Study</button>
     </section>
 
     <section id="completion-view" class="panel completion-panel" aria-labelledby="completion-title" hidden>
@@ -93,7 +97,7 @@
   </div>
 
   <script src="config.js?v=10"></script>
-  <script src="trials.js?v=14"></script>
-  <script src="study.js?v=18"></script>
+  <script src="trials.js?v=17"></script>
+  <script src="study.js?v=19"></script>
 </body>
 </html>

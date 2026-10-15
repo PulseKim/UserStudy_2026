@@ -2,18 +2,19 @@
 
 const STUDY_TRIALS_PER_PARTICIPANT = 15;
 const ATTENTION_CHECKS_PER_PARTICIPANT = 2;
-const COMPREHENSION_CHECKS_PER_PARTICIPANT = 2;
+const COMPREHENSION_CHECKS_PER_PARTICIPANT = 3;
 const ATTENTION_PASS_THRESHOLD = 1.0;
 const TEST_MODE = new URLSearchParams(window.location.search).get("test") === "1";
 // v7: forced choice (A/B only); older saved sessions may contain "No preference" checks, so they are not resumed.
-const STORAGE_KEY = TEST_MODE ? "motion-preference-study-session-v7-test" : "motion-preference-study-session-v7";
+const STORAGE_KEY = TEST_MODE ? "motion-preference-study-session-v8-test" : "motion-preference-study-session-v8";
 const $ = selector => document.querySelector(selector);
-const views = { landing: $("#landing-view"), study: $("#study-view"), completion: $("#completion-view") };
+const views = { landing: $("#landing-view"), study: $("#study-view"), mainIntro: $("#main-intro-view"), completion: $("#completion-view") };
 const consentCheckbox = $("#consent-checkbox"), startButton = $("#start-button");
 const participantEmail = $("#participant-email"), registrationMessage = $("#registration-message");
 const progress = $("#progress"), leftVideo = $("#left-video"), rightVideo = $("#right-video");
 const trialPrompt = $("#trial-prompt");
 const playAButton = $("#play-a-button"), playBothButton = $("#play-both-button"), playBButton = $("#play-b-button"), nextButton = $("#next-button");
+const beginMainStudyButton = $("#begin-main-study-button");
 const message = $("#study-message"), completionMessage = $("#completion-message");
 const practiceBanner = $("#practice-banner"), instructionModal = $("#instruction-modal"), instructionModalClose = $("#instruction-modal-close");
 const instructionModalBody = $("#instruction-modal-body");
@@ -68,7 +69,7 @@ function createSession(participantId) {
       leftSrc: firstLeft ? t.method1 : t.method2, rightSrc: firstLeft ? t.method2 : t.method1
     };
   });
-  return { participantId, isTest: TEST_MODE, studyStartTime: new Date().toISOString(), selectedTrials, currentIndex: 0,
+  return { participantId, isTest: TEST_MODE, studyStartTime: new Date().toISOString(), selectedTrials, currentIndex: 0, awaitingMainStudy: false,
     responses: [], currentSelection: null, trialShownAt: Date.now(), status: "in_progress", submissionStatus: "not_submitted" };
 }
 
@@ -113,11 +114,19 @@ function updateVideoSelection(position) {
   rightVideo.closest(".video-card").classList.toggle("selected", position === "right");
 }
 
+function showMainStudyIntro() {
+  stopVideos();
+  showView("mainIntro");
+}
+
 function renderTrial() {
   const trial = session.selectedTrials[session.currentIndex];
   if (!trial) { finishStudy(); return; }
   stopVideos(); leftVideo.src = trial.leftSrc; rightVideo.src = trial.rightSrc; leftVideo.load(); rightVideo.load();
-  progress.textContent = `Trial ${session.currentIndex + 1} / ${session.selectedTrials.length}`;
+  const comprehensionCount = session.selectedTrials.filter(item => item.isComprehensionCheck).length;
+  progress.textContent = trial.isComprehensionCheck
+    ? `Practice question ${session.currentIndex + 1} / ${comprehensionCount}`
+    : `Main study ${session.currentIndex - comprehensionCount + 1} / ${session.selectedTrials.length - comprehensionCount}`;
   trialPrompt.textContent = trial.prompt;
   practiceBanner.hidden = !trial.isComprehensionCheck;
   message.textContent = "";
@@ -177,7 +186,19 @@ function recordAndAdvance() {
     is_attention_check: t.isAttentionCheck, attention_check_correct: attentionCorrect,
     is_comprehension_check: t.isComprehensionCheck, comprehension_check_correct: comprehensionCorrect,
     timestamp: new Date().toISOString() });
-  session.currentIndex += 1; session.currentSelection = null; session.trialShownAt = Date.now(); saveSession(); renderTrial();
+  session.currentIndex += 1;
+  session.currentSelection = null;
+  const nextTrial = session.selectedTrials[session.currentIndex];
+  if (t.isComprehensionCheck && nextTrial && !nextTrial.isComprehensionCheck) {
+    session.awaitingMainStudy = true;
+    session.trialShownAt = null;
+    saveSession();
+    showMainStudyIntro();
+    return;
+  }
+  session.trialShownAt = Date.now();
+  saveSession();
+  renderTrial();
 }
 
 function buildPayload() {
@@ -237,6 +258,12 @@ playAButton.addEventListener("click", () => playOne(leftVideo));
 playBothButton.addEventListener("click", playBoth);
 playBButton.addEventListener("click", () => playOne(rightVideo));
 nextButton.addEventListener("click", recordAndAdvance);
+beginMainStudyButton.addEventListener("click", () => {
+  session.awaitingMainStudy = false;
+  session.trialShownAt = Date.now();
+  saveSession();
+  renderTrial();
+});
 instructionModalClose.addEventListener("click", () => { instructionModal.hidden = true; });
 responseInputs.forEach(input => input.addEventListener("change", () => {
   session.currentSelection = input.value;
@@ -244,6 +271,7 @@ responseInputs.forEach(input => input.addEventListener("change", () => {
   saveSession();
   nextButton.disabled = false;
 }));
-if (session?.status === "in_progress") renderTrial();
+if (session?.status === "in_progress" && session.awaitingMainStudy) showMainStudyIntro();
+else if (session?.status === "in_progress") renderTrial();
 else if (session?.status === "complete") { if (session.submissionStatus === "submitting") session.submissionStatus = "failed"; finishStudy(); }
 else showView("landing");

@@ -75,14 +75,19 @@ button:disabled { color: #8b8e92; border-color: #c6c8ca; cursor: not-allowed; }
 .prompt-display strong { margin-right: 6px; }
 
 .video-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 14px; }
-.video-card { margin: 0; min-width: 0; }
+.video-card { position: relative; display: block; margin: 0; min-width: 0; cursor: pointer; transition: outline-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+.video-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0, 0, 0, .12); }
 .video-card.selected { outline: 4px solid #4f46e5; outline-offset: 4px; box-shadow: 0 0 0 8px rgba(79, 70, 229, .14), 0 8px 24px rgba(79, 70, 229, .2); }
-.video-card figcaption { padding: 10px; border: 1px solid #c8cacc; border-bottom: 0; text-align: center; font-size: 1.3rem; font-weight: 700; }
+.video-card:focus-within { outline: 4px solid #4f46e5; outline-offset: 4px; }
+.video-choice-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.video-caption { display: block; padding: 12px; border: 1px solid #c8cacc; border-bottom: 0; background: #fff; text-align: center; font-size: 1.35rem; font-weight: 700; }
 .video-card video { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: contain; background: #111; border: 1px solid #c8cacc; }
 .playback-controls { display: flex; justify-content: center; gap: 16px; margin: 24px 0 30px; }
 
 .response-group { margin: 0; padding: 26px; border: 1px solid #c8cacc; }
 .response-group legend { padding: 0 10px; font-size: 1.25rem; font-weight: 650; }
+.video-response-group { padding: 18px 22px 22px; }
+.video-response-group .video-grid { margin-top: 4px; }
 .response-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
 .response-option { display: flex; justify-content: center; align-items: center; gap: 11px; min-height: 64px; padding: 12px; border: 1px solid #aeb1b4; border-radius: 3px; font-size: 1.12rem; cursor: pointer; }
 .response-option:hover { border-color: #4f46e5; background: #f5f3ff; }
@@ -92,6 +97,9 @@ button:disabled { color: #8b8e92; border-color: #c6c8ca; cursor: not-allowed; }
 .next-row { display: flex; justify-content: flex-end; margin-top: 8px; }
 .completion-panel { text-align: center; }
 .completion-panel p { margin-inline: auto; }
+.main-intro-panel { max-width: 840px; margin: 12vh auto 0; text-align: center; padding: 56px 48px; }
+.main-intro-panel p { max-width: 680px; margin: 12px auto; font-size: 1.2rem; line-height: 1.7; }
+.main-intro-panel button { margin-top: 24px; }
 
 .legend-hint { font-size: .95rem; font-weight: 400; color: #555; }
 .practice-banner { margin: 16px 0 0; padding: 14px 18px; background: #eef3fb; border-left: 4px solid #4f46e5; }

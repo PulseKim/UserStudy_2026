@@ -12,7 +12,7 @@ const TRIAL_CONFIG = [
   { id: "trial_007", type: "sequence", prompt: "A person jumps twice and then runs forward." },
   { id: "trial_008", type: "sequence", prompt: "A person walks forward, turns around, and then runs back to the starting point." },
   { id: "trial_009", type: "sequence", prompt: "A person squats down, stands up, and then jumps." },
-  { id: "trial_010", type: "sequence", prompt: "A person kicks forward with the left leg and then with the right leg." },
+  { id: "trial_010", type: "sequence", prompt: "A person kicks forward with the left leg, then with the right leg, and then with the left leg again." },
   { id: "trial_011", type: "sequence", prompt: "A person runs forward, jumps, and then crouches down." },
   { id: "trial_012", type: "sequence", prompt: "A person takes three steps backward and then turns left." },
   { id: "trial_013", type: "sequence", prompt: "A person punches forward twice and then kicks forward once." },
@@ -91,5 +91,13 @@ const COMPREHENSION_CHECKS = [
     comprehension_check: true,
     expected_method: "method1",   // correct answer: A
     hint: "Of course, A cannot jump 0.3 m either, but it matches the prompt better than B. Please be generous like this when choosing: pick the one that is closer to the prompt."
+  }),
+  configureTrial({
+    id: "comprehension_003",
+    type: "sequence",
+    prompt: "A person jumps, kicks and then walks.",
+    comprehension_check: true,
+    expected_method: "method2",   // correct answer: B (A = "jumps and walks", no kick)
+    hint: "For a sequence, check whether every action happens, in order: jump, kick, and then walk. B does all three; A never kicks."
   })
 ];

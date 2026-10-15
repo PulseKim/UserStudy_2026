@@ -97,7 +97,9 @@ def main():
     passed_comprehension=total_comprehension.gt(0) & correct_comprehension.eq(total_comprehension)
     comprehension=passed_comprehension.value_counts().rename_axis("passed").rename("participants")
     total_participants=len(sessions)
-    eligible=sessions[passed_all_checks & passed_comprehension]
+    # Comprehension checks are guided practice and do not determine eligibility.
+    # Participants are included only when they pass every attention check.
+    eligible=sessions[passed_all_checks]
     responses=responses[responses.participant_id.isin(eligible.participant_id)].copy()
     is_comprehension=responses["is_comprehension_check"] if "is_comprehension_check" in responses else pd.Series(False,index=responses.index)
     study=responses[~responses.is_attention_check.fillna(False) & ~is_comprehension.fillna(False)].copy()
